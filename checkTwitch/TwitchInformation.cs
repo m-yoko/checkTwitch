@@ -77,22 +77,31 @@ namespace checkTwitch
             public List<UserInformation> UserInformations { get; set; }
         }
 
-        /// <summary>
-        /// get GET response.
-        /// </summary>
-        /// <param name="uriString">please set uri</param>
-        /// <param name="twitchClientId">please set clientId</param>
-        /// <returns></returns>
-        private IRestResponse getResponse(in string uriString, in string twitchClientId)
+        public class HostingInformation
         {
-            var client = new RestClient();
-            client.BaseUrl = new Uri(uriString);
-            var request = new RestRequest(Method.GET);
-            request.RequestFormat = DataFormat.Json;
+            [DeserializeAs(Name = "host_id")]
+            public string hostId { get; set; }
+            [DeserializeAs(Name = "target_id")]
+            public string targetId { get; set; }
 
-            request.AddHeader("Accept", "application/vnd.twitchtv.v5+json");
-            request.AddHeader("Client-ID", twitchClientId);
-            return client.Execute(request);
+            [DeserializeAs(Name = "host_login")]
+            public string hostUserName { get; set; }
+
+            [DeserializeAs(Name = "target_login")]
+            public string targetUserName { get; set; }
+
+            [DeserializeAs(Name = "host_display_name")]
+            public string hostDisplayName { get; set; }
+
+            [DeserializeAs(Name = "target_display_name")]
+            public string targetDisplayName { get; set; }
+        }
+
+        public class ResponseHostingInformation
+        {
+            [DeserializeAs(Name = "hosts")]
+            public List<HostingInformation> hosts { get; set; }
+
         }
 
         private string TwitchClientId { get; }
@@ -107,6 +116,70 @@ namespace checkTwitch
         }
 
         /// <summary>
+        /// get GET response.
+        /// </summary>
+        /// <param name="uriString">please set uri</param>
+        /// <param name="twitchClientId">please set clientId</param>
+        /// <returns></returns>
+        private IRestResponse getResponse(in string uriString)
+        {
+            var client = new RestClient();
+            client.BaseUrl = new Uri(uriString);
+            var request = new RestRequest(Method.GET);
+            request.RequestFormat = DataFormat.Json;
+
+            request.AddHeader("Accept", "application/vnd.twitchtv.v5+json");
+            request.AddHeader("Client-ID", this.TwitchClientId);
+            return client.Execute(request);
+        }
+
+        /// <summary>
+        /// get GET response.
+        /// </summary>
+        /// <param name="uriString">please set uri</param>
+        /// <param name="twitchClientId">please set clientId</param>
+        /// <returns></returns>
+        private IRestResponse GetGETResponse(in string baseUriString, in List<Parameter> parameters)
+        {
+            var client = new RestClient();
+            client.BaseUrl = new Uri(baseUriString);
+            var request = new RestRequest(Method.GET);
+            foreach (var param in parameters)
+            {
+                request.AddParameter(param);
+            }
+            request.RequestFormat = DataFormat.Json;
+
+            request.AddHeader("Client-ID", this.TwitchClientId);
+            return client.Execute(request);
+        }
+
+
+
+
+        public bool IsOtherHosting(in string userId)
+        {
+            var parameters = new List<Parameter>();
+            parameters.Add(new Parameter("include_logins", "1", ParameterType.GetOrPost));
+            parameters.Add(new Parameter("host", userId, ParameterType.GetOrPost));
+            var hostingResponse = GetGETResponse("https://tmi.twitch.tv/hosts", parameters);
+            var deserializer = new JsonDeserializer();
+            var hostingInformation = deserializer.Deserialize<ResponseHostingInformation>(hostingResponse);
+            var result = false;
+            if (hostingInformation.hosts.FirstOrDefault()?.targetId == null)
+            {
+                result = false;
+            }
+            else
+            {
+                result = true;
+            }
+
+            return result;
+        }
+
+
+        /// <summary>
         /// Check if it is a valid client ID.
         /// </summary>
         /// <returns>valid:true</returns>
@@ -119,7 +192,7 @@ namespace checkTwitch
 
             string translateUrl = apiBaseUrl + "users?login=" + userName;
 
-            var translateResponse = getResponse(translateUrl, TwitchClientId);
+            var translateResponse = getResponse(translateUrl);
 
             var deserializer = new JsonDeserializer();
             ResponseUserInformation responseUserInformation = deserializer.Deserialize<ResponseUserInformation>(translateResponse);
@@ -177,7 +250,7 @@ namespace checkTwitch
 
             string translateUrl = apiBaseUrl + "users?login=" + userName;
 
-            var translateResponse = getResponse(translateUrl, TwitchClientId);
+            var translateResponse = getResponse(translateUrl);
 
             var deserializer = new JsonDeserializer();
             ResponseUserInformation responseUserInformation = deserializer.Deserialize<ResponseUserInformation>(translateResponse);
@@ -186,8 +259,8 @@ namespace checkTwitch
                 Console.WriteLine("user information is not found");
                 Environment.Exit(1);
             }
-            var streamUrl = apiBaseUrl + "/streams/" + responseUserInformation.UserInformations.FirstOrDefault().id;
-            var streamResponse = getResponse(streamUrl, TwitchClientId);
+            var streamUrl = apiBaseUrl + "streams/" + responseUserInformation.UserInformations.FirstOrDefault().id;
+            var streamResponse = getResponse(streamUrl);
             ResponseStreamInformation responseStreamInformation =
                 deserializer.Deserialize<ResponseStreamInformation>(streamResponse);
             bool result;
@@ -195,13 +268,17 @@ namespace checkTwitch
             {
                 result = false;
                 status = "";
+                if (IsOtherHosting(responseUserInformation.UserInformations.FirstOrDefault().id))
+                {
+                    status = "hosting now";
+                }
+
             }
             else
             {
                 result = true;
                 status = responseStreamInformation.streamInformation.channelInformation.status;
             }
-
 
             return result;
         }

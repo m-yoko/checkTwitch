@@ -24,12 +24,12 @@ namespace checkTwitch
             if (result)
             {
                 Console.WriteLine(DateTime.Now.ToString() + "\tOnline");
-                Console.WriteLine("status:" + status);
             }
             else
             {
                 Console.WriteLine(DateTime.Now.ToString() + "\tOffline");
             }
+            Console.WriteLine("status:" + status);
 
             return result == true ? 0 : 1;
         }
