@@ -113,7 +113,7 @@ namespace checkTwitch
         public bool IsCorrectClientId()
         {
             bool result = false;
-            var userName = "twitchpresents";
+            const string userName = "twitchjp";
 
             const string apiBaseUrl = "https://api.twitch.tv/kraken/";
 
