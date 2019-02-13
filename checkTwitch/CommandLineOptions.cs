@@ -10,16 +10,17 @@ namespace checkTwitch
     [HelpOption]
     public class CheckOptions
     {
+        [Required]
+        [Option(Template = "--userNameUrl|-u", Description = "Target UserName or URL")]
 
-        [Option(Template = "--userNameUrl|--uu", Description = "Target UserName or URL")]
         public string UserNameOrUrl { get; set; }
 
         [Required]
-        [Option(Template = "--tokenString|--ts", Description = "Your Token")]
+        [Option(Template = "--tokenString|-s", Description = "Your Token")]
         public string TokenString { get; set; }
 
         [Required]
-        [Option(Template = "--tokenType|--tt", Description = "Your Token type")]
+        [Option(Template = "--tokenType|-t", Description = "Your Token type")]
         public string TokenType { get; set; }
 
 
@@ -35,18 +36,16 @@ namespace checkTwitch
 
     }
 
-
-    //[Command(FullName = "PublishToken",Name = "pt")]
-    [Command(FullName = "PublishToken", Name = "pt")]
+    [Command(FullName = "MakeToken", Name = "mt")]
     [HelpOption]
     public class PublishTokenModeOptions
     {
         [Required]
-        [Option(Template = "--clientId|--ci", Description = "Your Twitch ClientID")]
+        [Option(Template = "--clientId|-i", Description = "Your Twitch ClientID")]
         public string ClientId { get; set; }
 
         [Required]
-        [Option(Template = "--clientSecret|--cs", Description = "Your Twitch ClientSecret")]
+        [Option(Template = "--clientSecret|-s", Description = "Your Twitch ClientSecret")]
         public string ClientSecret { get; set; }
 
         public int OnExecute()

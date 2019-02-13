@@ -11,17 +11,18 @@ windowsユーザはdotnet.exeが入っていれば動きますが、.NET Framewo
 
 ## このツールの使い方
 
-### ツール使う前にまずTwitchに登録してclient idを取得してね。
+### ツール使う前にまずTwitchに登録してclient idとclient secretを取得してね。
 
 実行時に必要なのは2つです:
 
-* clientId: Twitchに登録して手に入れたTwitch client id
-* urlOrUserName: 放送中かどうか調べたいurlかユーザーネーム
+* tokenString: Twitchで発行したトークン(まだ持っていない場合後述のコマンドで発行できます。)
+* tokenType: トークンの種類(Bearerしか使わないです。)
+* userNameUrl: 調べたいユーザ名かURL
 
 例:
 
 ```powershell
-dotnet.exe .\checkTwitch.dll --clientId < your twitch client id > --urlOrUserNam < url or username ex:twitchjp or https://www.twitch.tv/twitchjp >
+dotnet.exe .\checkTwitch.dll check --userNameUrl < Target UserName or URL > --tokenString < Your Token > --tokenType < Your Token type >
 ```
 
 放送してたら、
@@ -44,6 +45,8 @@ Please check the client id.
 2019/01/22 22:00:00     Offline
 ```
 
-## めっちゃ大事な注意
+トークンを持っていない場合以下のコマンドで発行できます。
 
-別のチャンネルをホスティングしてる場合オフラインの表記がでます！オフラインで間違いではないと思いますが使いづらいのでこれあとでいい感じに直します。
+```powershell
+dotnet.exe .\checkTwitch.dll MakeToken --clientId < YOur twithc ClientId > --clientSecret < Your Twitch ClientSecret >
+```
