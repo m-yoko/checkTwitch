@@ -1,178 +1,114 @@
 ﻿using RestSharp;
-using RestSharp.Deserializers;
 using RestSharp.Serialization.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 
 namespace checkTwitch
 {
+
+
+
     class TwitchInformation
     {
-        public class StreamInformation
-        {
-            [DeserializeAs(Name = "_id")]
-            public string id { get; set; }
-            public string game { get; set; }
-            public string viewers { get; set; }
-            public string video_height { get; set; }
-            public string average_fps { get; set; }
-            public string delay { get; set; }
-            public string created_at { get; set; }
-            public string is_playlist { get; set; }
 
-            [DeserializeAs(Name = "channel")]
-            public ChannelInformation channelInformation { get; set; }
-        }
+        #region variable
 
-        public class ChannelInformation
-        {
-            public string mature { get; set; }
-            public string status { get; set; }
-            public string broadcaster_language { get; set; }
-            public string display_name { get; set; }
-            public string game { get; set; }
-            public string language { get; set; }
-            [DeserializeAs(Name = "_id")]
+        public string TwitchClientId { get; }
 
-            public string id { get; set; }
-            public string name { get; set; }
-            public string created_at { get; set; }
-            public string updated_at { get; set; }
-            public string partner { get; set; }
-            public string logo { get; set; }
-            public string video_banner { get; set; }
-            public string profile_banner { get; set; }
-            public string profile_banner_background_color { get; set; }
-            public string url { get; set; }
-            public string views { get; set; }
-            public string followers { get; set; }
-        }
-        public class ResponseStreamInformation
-        {
-            [DeserializeAs(Name = "stream")]
-            public StreamInformation streamInformation { get; set; }
+        public Token Token { get; set; }
 
-        }
-        public class UserInformation
-        {
-            [DeserializeAs(Name = "_id")]
-            public string id { get; set; }
-            public string bio { get; set; }
-            public string created_at { get; set; }
-            public string display_name { get; set; }
-            public string logo { get; set; }
-            public string name { get; set; }
-            public string type { get; set; }
-            public string updated_at { get; set; }
-        }
-        public class ResponseUserInformation
-        {
+        public string ClientSecret { get; }
 
-            [DeserializeAs(Name = "_total")]
+        #endregion
 
-            public int userCount { get; set; }
-            [DeserializeAs(Name = "users")]
 
-            public List<UserInformation> UserInformations { get; set; }
-        }
 
-        public class HostingInformation
-        {
-            [DeserializeAs(Name = "host_id")]
-            public string hostId { get; set; }
-            [DeserializeAs(Name = "target_id")]
-            public string targetId { get; set; }
 
-            [DeserializeAs(Name = "host_login")]
-            public string hostUserName { get; set; }
-
-            [DeserializeAs(Name = "target_login")]
-            public string targetUserName { get; set; }
-
-            [DeserializeAs(Name = "host_display_name")]
-            public string hostDisplayName { get; set; }
-
-            [DeserializeAs(Name = "target_display_name")]
-            public string targetDisplayName { get; set; }
-        }
-
-        public class ResponseHostingInformation
-        {
-            [DeserializeAs(Name = "hosts")]
-            public List<HostingInformation> hosts { get; set; }
-
-        }
-
-        private string TwitchClientId { get; }
+        #region mainClass
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="twitchClientId"></param>
-        public TwitchInformation(in string twitchClientId)
+        /// <param name="clientSecret"></param>
+        /// <param name="checkClientId"></param>
+        public TwitchInformation(in string twitchClientId, in string clientSecret, in bool checkClientId = true)
         {
             this.TwitchClientId = twitchClientId;
-        }
-
-        /// <summary>
-        /// get GET response.
-        /// </summary>
-        /// <param name="uriString">please set uri</param>
-        /// <param name="twitchClientId">please set clientId</param>
-        /// <returns></returns>
-        private IRestResponse getResponse(in string uriString)
-        {
-            var client = new RestClient();
-            client.BaseUrl = new Uri(uriString);
-            var request = new RestRequest(Method.GET);
-            request.RequestFormat = DataFormat.Json;
-
-            request.AddHeader("Accept", "application/vnd.twitchtv.v5+json");
-            request.AddHeader("Client-ID", this.TwitchClientId);
-            return client.Execute(request);
-        }
-
-        /// <summary>
-        /// get GET response.
-        /// </summary>
-        /// <param name="uriString">please set uri</param>
-        /// <param name="twitchClientId">please set clientId</param>
-        /// <returns></returns>
-        private IRestResponse GetGETResponse(in string baseUriString, in List<Parameter> parameters)
-        {
-            var client = new RestClient();
-            client.BaseUrl = new Uri(baseUriString);
-            var request = new RestRequest(Method.GET);
-            foreach (var param in parameters)
+            if (checkClientId)
             {
-                request.AddParameter(param);
+                if (!this.IsValidClientId())
+                {
+                    Console.WriteLine("Twitch client id error.");
+                    Console.WriteLine("Please check the client id.");
+                    Environment.Exit(1);
+                }
             }
-            request.RequestFormat = DataFormat.Json;
-
-            request.AddHeader("Client-ID", this.TwitchClientId);
-            return client.Execute(request);
+            this.ClientSecret = clientSecret;
         }
 
-
-
-
-        public bool IsOtherHosting(in string userId)
+        public TwitchInformation(in Token token)
         {
-            var parameters = new List<Parameter>();
-            parameters.Add(new Parameter("include_logins", "1", ParameterType.GetOrPost));
-            parameters.Add(new Parameter("host", userId, ParameterType.GetOrPost));
-            var hostingResponse = GetGETResponse("https://tmi.twitch.tv/hosts", parameters);
+            this.Token = token;
+        }
+
+        public Token PublishToken(string scopes = null)
+        {
+            var parameters = new List<Parameter>
+            {
+                new Parameter("client_id", this.TwitchClientId, ParameterType.GetOrPost),
+                new Parameter("client_secret", this.ClientSecret, ParameterType.GetOrPost),
+                new Parameter("grant_type", "client_credentials", ParameterType.GetOrPost)
+            };
+            if (scopes != null)
+            {
+                parameters.Add(new Parameter("scope", scopes, ParameterType.GetOrPost));
+            }
+
+            var tokenResponse = RestSharpWrapper.GetResponse(Constant.ApiPublishTokenUrl, parameters,Method.POST);
+            var deserializer = new JsonDeserializer();
+            var tokenInformation = deserializer.Deserialize<ResponseTokenInformation>(tokenResponse);
+            Token token = null;
+            if (tokenInformation.AccessToken != null)
+            {
+                token = new Token(tokenInformation.AccessToken, tokenInformation.TokenType,
+                    tokenInformation.RemainingSeconds);
+            }
+            else
+            {
+                Console.WriteLine("!PublishTokenError!");
+                Console.WriteLine("Reason:");
+                Console.WriteLine(tokenInformation.Status);
+                Console.WriteLine(tokenInformation.Message);
+                Environment.Exit(1);
+            }
+
+            return token;
+        }
+
+        public bool IsOtherHosting(in string userId,out string status)
+        {
+            var parameters = new List<Parameter>
+            {
+                new Parameter("include_logins", "1", ParameterType.GetOrPost),
+                new Parameter("host", userId, ParameterType.GetOrPost)
+            };
+            var hostingResponse = RestSharpWrapper.GetResponse(Constant.ApiCheckHostingUrl, parameters);
             var deserializer = new JsonDeserializer();
             var hostingInformation = deserializer.Deserialize<ResponseHostingInformation>(hostingResponse);
             var result = false;
-            if (hostingInformation.hosts.FirstOrDefault()?.targetId == null)
+            if (hostingInformation.Hosts.FirstOrDefault()?.TargetId == null)
             {
                 result = false;
+                status = "";
             }
             else
             {
                 result = true;
+                status =$"HostName:{hostingInformation.Hosts.FirstOrDefault().TargetDisplayName}\n" +
+                        $"HostId:{hostingInformation.Hosts.FirstOrDefault().TargetId}\n";
             }
 
             return result;
@@ -183,27 +119,30 @@ namespace checkTwitch
         /// Check if it is a valid client ID.
         /// </summary>
         /// <returns>valid:true</returns>
-        public bool IsCorrectClientId()
+        public bool IsValidClientId()
         {
-            bool result = false;
-            const string userName = "twitchjp";
-
-            const string apiBaseUrl = "https://api.twitch.tv/kraken/";
-
-            string translateUrl = apiBaseUrl + "users?login=" + userName;
-
-            var translateResponse = getResponse(translateUrl);
-
-            var deserializer = new JsonDeserializer();
-            ResponseUserInformation responseUserInformation = deserializer.Deserialize<ResponseUserInformation>(translateResponse);
-            if (responseUserInformation.userCount == 0)
+            var result = false;
+            Uri.TryCreate(Constant.ApiNewBaseUrl, "streams",out var checkUrl);
+            var parameters = new List<Parameter>
             {
-                result = false;
-            }
-            else
+                new Parameter("Client-ID", this.TwitchClientId, ParameterType.HttpHeader),
+                new Parameter("first", "1", ParameterType.GetOrPost)
+            };
+            var response = RestSharpWrapper.GetResponse(checkUrl, parameters);
+
+            switch (response.StatusCode)
             {
-                result = true;
+                case HttpStatusCode.OK:
+                    result = true;
+                    break;
+                case HttpStatusCode.Unauthorized:
+                    result = false;
+                    break;
+                default:
+                    result = false;
+                    break;
             }
+
             return result;
         }
 
@@ -211,20 +150,13 @@ namespace checkTwitch
         /// Check if it is on air.
         /// </summary>
         /// <param name="urlOrUserName">
-        /// url         ex:https://www.twitch.tv/monstercat
-        /// userName    ex:monstercat
+        /// url         ex: https://www.twitch.tv/monstercat
+        /// userName    ex: monstercat
         /// </param>
         /// <param name="status">live status for output</param>
         /// <returns></returns>
         public bool IsLiveStreaming(in string urlOrUserName, out string status)
         {
-            if (!this.IsCorrectClientId())
-            {
-                Console.WriteLine("Twitch client id error.");
-                Console.WriteLine("Please check the client id.");
-                status = "";
-                return false;
-            }
             var isUrl = urlOrUserName.StartsWith("http");
             var userName = string.Empty;
             if (isUrl)
@@ -246,42 +178,50 @@ namespace checkTwitch
             {
                 userName = urlOrUserName;
             }
-            const string apiBaseUrl = "https://api.twitch.tv/kraken/";
 
-            string translateUrl = apiBaseUrl + "users?login=" + userName;
-
-            var translateResponse = getResponse(translateUrl);
-
-            var deserializer = new JsonDeserializer();
-            ResponseUserInformation responseUserInformation = deserializer.Deserialize<ResponseUserInformation>(translateResponse);
-            if (responseUserInformation.userCount == 0)
+            Uri.TryCreate(Constant.ApiNewBaseUrl, "streams", out var streamUrl);
+            var streamUrlParams = new List<Parameter>()
             {
-                Console.WriteLine("user information is not found");
-                Environment.Exit(1);
-            }
-            var streamUrl = apiBaseUrl + "streams/" + responseUserInformation.UserInformations.FirstOrDefault().id;
-            var streamResponse = getResponse(streamUrl);
-            ResponseStreamInformation responseStreamInformation =
+                new Parameter("Authorization",$"{this.Token.TokenType} {this.Token.TokenString}",ParameterType.HttpHeader),
+                new Parameter("user_login", userName, ParameterType.GetOrPost)                
+            };
+            
+            var streamResponse = RestSharpWrapper.GetResponse(streamUrl, streamUrlParams);
+            var deserializer = new JsonDeserializer();
+            var streamInformation =
                 deserializer.Deserialize<ResponseStreamInformation>(streamResponse);
-            bool result;
-            if (responseStreamInformation.streamInformation == null)
+            var result = false;
+            if (!streamInformation.StreamInformation.Any())
             {
                 result = false;
                 status = "";
-                if (IsOtherHosting(responseUserInformation.UserInformations.FirstOrDefault().id))
+                Uri.TryCreate(Constant.ApiNewBaseUrl, "users", out var userInfoUrl);
+                var userInfoUrlParams = new List<Parameter>()
                 {
-                    status = "hosting now";
+                    new Parameter("Authorization",$"{this.Token.TokenType} {this.Token.TokenString}",ParameterType.HttpHeader),
+                    new Parameter("login", userName, ParameterType.GetOrPost)
+                };
+                var userInformationResponse = RestSharpWrapper
+                    .GetResponse(userInfoUrl, userInfoUrlParams);
+                var UserInformation = deserializer.Deserialize<ResponseUserInformation>(userInformationResponse);
+                if (UserInformation.UserInformations.FirstOrDefault()?.Id !=null)
+                {
+                    if (IsOtherHosting(UserInformation.UserInformations.FirstOrDefault().Id,out status))
+                    {
+                        status += "user is hosting now";
+                        result = true;
+                    }
                 }
-
             }
             else
             {
                 result = true;
-                status = responseStreamInformation.streamInformation.channelInformation.status;
+                status = streamInformation.StreamInformation.FirstOrDefault().Title;
             }
 
             return result;
         }
-    }
 
+        #endregion
+    }
 }
