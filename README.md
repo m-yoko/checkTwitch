@@ -18,17 +18,18 @@ This is probably required:
 
 ## How to use this tool.
 
-### Before using this tool, register to twitch and get the client id.
+### Before using this tool, register to twitch and get the client id and client secret.
 
 This is required:
 
-* clientId: your Twitch client id.
-* urlOrUserName: User ID you want to check if you are Twitch broadcasting.
+* tokenString: your Twitch client token.
+* tokenType: your token type.
+* userNameUrl: User ID you want to check if you are Twitch broadcasting.
 
 I will put an example below.
 
 ```powershell
-dotnet.exe .\checkTwitch.dll --clientId < your twitch client id > --urlOrUserNam < url or username ex:twitchjp or https://www.twitch.tv/twitchjp >
+dotnet.exe .\checkTwitch.dll check --userNameUrl < Target UserName or URL > --tokenString < Your Token > --tokenType < Your Token type >
 ```
 
 When broadcasting,
@@ -51,6 +52,10 @@ Please check the client id.
 2019/01/22 22:00:00     Offline
 ```
 
-## Important notice
+Do not you have any tokens yet?
 
-Offline is displayed when hosting other broadcast program. but I'll fix it later.
+Execute the following command to create a token.
+
+```powershell
+dotnet.exe .\checkTwitch.dll MakeToken --clientId < YOur twithc ClientId > --clientSecret < Your Twitch ClientSecret >
+```
